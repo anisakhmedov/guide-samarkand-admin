@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { Guest } from '../api/types';
+import { ActionButtons, StatusCell } from '../components/StatusControls';
 
 export function GuestsPage() {
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -8,6 +9,7 @@ export function GuestsPage() {
   const [residence, setResidence] = useState('');
   const [review, setReview] = useState('');
   const [access, setAccess] = useState('');
+  const [discount, setDiscount] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -17,6 +19,7 @@ export function GuestsPage() {
     if (residence) params.set('residence', residence);
     if (review) params.set('review', review);
     if (access) params.set('access', access);
+    if (discount) params.set('discount', discount);
     setLoading(true);
     api
       .get<Guest[]>(`/admin/guests?${params.toString()}`)
@@ -24,9 +27,9 @@ export function GuestsPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, [search, residence, review, access]);
+  useEffect(load, [search, residence, review, access, discount]);
 
-  const setStatus = async (id: string, kind: 'residence' | 'review' | 'access', status: string) => {
+  const setStatus = async (id: string, kind: 'residence' | 'review' | 'access' | 'discount', status: string) => {
     await api.patch(`/admin/guests/${id}/${kind}`, { status });
     load();
   };
@@ -53,6 +56,12 @@ export function GuestsPage() {
           <option value="open">открыт</option>
           <option value="closed">закрыт</option>
         </select>
+        <select value={discount} onChange={(e) => setDiscount(e.target.value)}>
+          <option value="">Скидка: все</option>
+          <option value="none">нет</option>
+          <option value="pending">ожидает проверки</option>
+          <option value="approved">подтверждена</option>
+        </select>
       </div>
 
       {loading ? (
@@ -66,6 +75,7 @@ export function GuestsPage() {
               <th>Проживание</th>
               <th>Отзыв</th>
               <th>Доступ</th>
+              <th>Скидка</th>
               <th></th>
             </tr>
           </thead>
@@ -109,11 +119,22 @@ export function GuestsPage() {
                       onSelect={(v) => setStatus(g._id, 'access', v)}
                     />
                   </td>
+                  <td>
+                    <StatusCell value={g.discountStatus} />
+                    <ActionButtons
+                      options={[
+                        ['approved', 'Подтвердить'],
+                        ['none', 'Сброс'],
+                      ]}
+                      current={g.discountStatus}
+                      onSelect={(v) => setStatus(g._id, 'discount', v)}
+                    />
+                  </td>
                   <td>{expanded === g._id ? '▲' : '▼'}</td>
                 </tr>
                 {expanded === g._id && (
                   <tr>
-                    <td colSpan={6} style={{ background: '#fafbfc' }}>
+                    <td colSpan={7} style={{ background: '#fafbfc' }}>
                       <strong>История действий</strong>
                       <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>
                         {g.history.slice().reverse().map((h, i) => (
@@ -130,32 +151,6 @@ export function GuestsPage() {
           </tbody>
         </table>
       )}
-    </div>
-  );
-}
-
-function StatusCell({ value }: { value: string }) {
-  const cls = value === 'approved' || value === 'open' ? 'green' : value === 'rejected' || value === 'closed' ? 'red' : 'orange';
-  return <span className={`badge ${cls}`}>{value}</span>;
-}
-
-function ActionButtons({ options, current, onSelect }: { options: [string, string][]; current: string; onSelect: (v: string) => void }) {
-  return (
-    <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
-      {options
-        .filter(([v]) => v !== current)
-        .map(([v, label]) => (
-          <button
-            key={v}
-            className="btn small secondary"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect(v);
-            }}
-          >
-            {label}
-          </button>
-        ))}
     </div>
   );
 }

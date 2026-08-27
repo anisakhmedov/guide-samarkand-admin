@@ -17,6 +17,7 @@ export interface Place {
 export type ResidenceStatus = 'pending' | 'approved' | 'rejected';
 export type ReviewStatus = 'not_sent' | 'pending' | 'approved';
 export type AccessStatus = 'open' | 'closed';
+export type DiscountStatus = 'none' | 'pending' | 'approved';
 
 export interface GuestHistoryEntry {
   action: string;
@@ -31,6 +32,7 @@ export interface Guest {
   statusResidence: ResidenceStatus;
   statusReview: ReviewStatus;
   accessStatus: AccessStatus;
+  discountStatus: DiscountStatus;
   history: GuestHistoryEntry[];
   createdAt: string;
 }
@@ -97,4 +99,32 @@ export interface StaffMember {
   login: string;
   role: AdminRole;
   active: boolean;
+}
+
+export type MenuItemType = 'food' | 'drink';
+
+export interface MenuItem {
+  _id: string;
+  type: MenuItemType;
+  name: string;
+  description: string;
+  price: number;
+  photo: string;
+  active: boolean;
+}
+
+export type ServiceRequestType = 'food_order' | 'drink_order' | 'wake_up' | 'cleaning' | 'problem' | 'extension';
+export type ServiceRequestStatus = 'new' | 'in_progress' | 'done' | 'rejected';
+
+export interface ServiceRequest {
+  _id: string;
+  guestId: { name: string; roomNumber: string } | string;
+  type: ServiceRequestType;
+  status: ServiceRequestStatus;
+  payload: Record<string, any>;
+  createdAt: string;
+}
+
+export interface HotelSettings {
+  discountPercent: number;
 }

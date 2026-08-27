@@ -8,6 +8,9 @@ import { RouteBuilderPage } from './pages/RouteBuilderPage';
 import { ChatPage } from './pages/ChatPage';
 import { FeedbackPage } from './pages/FeedbackPage';
 import { StaffPage } from './pages/StaffPage';
+import { MenuPage } from './pages/MenuPage';
+import { ServiceRequestsPage } from './pages/ServiceRequestsPage';
+import { SettingsPage } from './pages/SettingsPage';
 
 function RequireAuth({ children }: { children: React.ReactElement }) {
   const { admin } = useAuth();
@@ -34,6 +37,9 @@ function Router() {
         <Route path="chat" element={<ChatPage />} />
         <Route path="feedback" element={<FeedbackPage />} />
         <Route path="staff" element={<StaffPage />} />
+        <Route path="menu" element={<MenuPage />} />
+        <Route path="requests" element={<ServiceRequestsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
     </Routes>
   );

@@ -1,14 +1,17 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { Compass, LogOut, MapPinned, MessageCircle, ScrollText, Sparkles, Users } from 'lucide-react';
+import { Compass, ListChecks, LogOut, MapPinned, MessageCircle, Settings, ScrollText, Sparkles, UtensilsCrossed, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const NAV = [
   { to: '/guests', label: 'Гости', Icon: Users, roles: ['super_admin', 'reception'] },
   { to: '/places', label: 'Контент гайда', Icon: MapPinned, roles: ['super_admin', 'content_manager'] },
   { to: '/routes', label: 'Конструктор маршрутов', Icon: Compass, roles: ['super_admin', 'reception'] },
+  { to: '/menu', label: 'Меню room-service', Icon: UtensilsCrossed, roles: ['super_admin', 'reception'] },
+  { to: '/requests', label: 'Запросы гостей', Icon: ListChecks, roles: ['super_admin', 'reception'] },
   { to: '/chat', label: 'Чат', Icon: MessageCircle, roles: ['super_admin', 'reception'] },
   { to: '/feedback', label: 'Обратная связь', Icon: ScrollText, roles: ['super_admin', 'reception', 'content_manager'] },
   { to: '/staff', label: 'Персонал', Icon: Sparkles, roles: ['super_admin'] },
+  { to: '/settings', label: 'Настройки', Icon: Settings, roles: ['super_admin'] },
 ];
 
 export function Layout() {
