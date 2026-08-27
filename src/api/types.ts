@@ -128,3 +128,8 @@ export interface ServiceRequest {
 export interface HotelSettings {
   discountPercent: number;
 }
+
+export interface AdminNotifications {
+  unreadChat: number;
+  newRequests: number;
+}

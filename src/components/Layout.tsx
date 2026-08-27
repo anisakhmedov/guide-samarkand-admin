@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { Compass, ListChecks, LogOut, MapPinned, MessageCircle, Settings, ScrollText, Sparkles, UtensilsCrossed, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { NotificationBell } from './NotificationBell';
 
 const NAV = [
   { to: '/guests', label: 'Гости', Icon: Users, roles: ['super_admin', 'reception'] },
@@ -29,10 +30,13 @@ export function Layout() {
     <div className="layout">
       <aside className="sidebar">
         <div className="sidebar__brand">
-          <div className="sidebar__brand-icon">
-            <Compass size={18} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="sidebar__brand-icon">
+              <Compass size={18} />
+            </div>
+            Гид — Админ
           </div>
-          Гид — Админ
+          <NotificationBell />
         </div>
         <div className="sidebar__section-label">Управление</div>
         {NAV.filter((item) => item.roles.includes(admin.role)).map(({ to, label, Icon }) => (
