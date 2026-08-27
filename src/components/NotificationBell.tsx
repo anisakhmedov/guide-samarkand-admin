@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Bell, ListChecks, MessageCircle } from 'lucide-react';
 import { api } from '../api/client';
 import { AdminNotifications } from '../api/types';
+import { notifyBrowser, requestNotificationPermission } from '../notify';
 
 const POLL_MS = 15000;
 
@@ -14,10 +15,28 @@ export function NotificationBell() {
   const [data, setData] = useState<AdminNotifications>({ unreadChat: 0, newRequests: 0 });
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const prevRef = useRef<AdminNotifications | null>(null);
 
-  const load = () => api.get<AdminNotifications>('/admin/notifications').then(setData).catch(() => {});
+  const load = () =>
+    api
+      .get<AdminNotifications>('/admin/notifications')
+      .then((s) => {
+        setData(s);
+        const prev = prevRef.current;
+        if (prev) {
+          if (s.unreadChat > prev.unreadChat) {
+            notifyBrowser('Новое сообщение', 'Гость написал в чат');
+          }
+          if (s.newRequests > prev.newRequests) {
+            notifyBrowser('Новая заявка', 'Гость отправил новый запрос');
+          }
+        }
+        prevRef.current = s;
+      })
+      .catch(() => {});
 
   useEffect(() => {
+    requestNotificationPermission();
     load();
     const id = setInterval(load, POLL_MS);
     return () => clearInterval(id);
