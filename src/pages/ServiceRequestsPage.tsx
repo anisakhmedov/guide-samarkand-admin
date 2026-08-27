@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../api/client';
+import { api, API_URL } from '../api/client';
 import { ServiceRequest, ServiceRequestStatus, ServiceRequestType } from '../api/types';
 import { ActionButtons, StatusCell } from '../components/StatusControls';
 
@@ -62,6 +62,12 @@ function PayloadSummary({ request }: { request: ServiceRequest }) {
         <>
           <div>Категория: {(p.category as string) || '—'}</div>
           <div>{(p.description as string) || ''}</div>
+          {!!p.photo && (
+            <img
+              src={(p.photo as string).startsWith('http') ? (p.photo as string) : `${API_URL}${p.photo}`}
+              style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 6, marginTop: 6 }}
+            />
+          )}
         </>
       );
     default:
@@ -75,6 +81,7 @@ export function ServiceRequestsPage() {
   const [type, setType] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(true);
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
 
   const load = () => {
     const params = new URLSearchParams();
@@ -94,9 +101,15 @@ export function ServiceRequestsPage() {
     load();
   };
 
+  const saveComment = async (id: string, comment: string) => {
+    await api.patch(`/admin/service-requests/${id}/comment`, { comment });
+    load();
+  };
+
   return (
     <div>
       <h1>Запросы гостей</h1>
+      <p className="muted">Комментарий виден гостю в блоке «Мои заявки» на странице Опций.</p>
       <div className="toolbar">
         <select value={type} onChange={(e) => setType(e.target.value)}>
           <option value="">Тип: все</option>
@@ -126,24 +139,40 @@ export function ServiceRequestsPage() {
               <th>Тип</th>
               <th>Детали</th>
               <th>Статус</th>
+              <th>Комментарий гостю</th>
               <th>Когда</th>
             </tr>
           </thead>
           <tbody>
-            {requests.map((r) => (
-              <tr key={r._id}>
-                <td>{typeof r.guestId === 'object' && r.guestId ? `${r.guestId.name} №${r.guestId.roomNumber}` : '—'}</td>
-                <td>{TYPE_LABELS[r.type]}</td>
-                <td>
-                  <PayloadSummary request={r} />
-                </td>
-                <td>
-                  <StatusCell value={r.status} />
-                  <ActionButtons options={STATUS_OPTIONS} current={r.status} onSelect={(v) => setRequestStatus(r._id, v)} />
-                </td>
-                <td className="muted">{new Date(r.createdAt).toLocaleString()}</td>
-              </tr>
-            ))}
+            {requests.map((r) => {
+              const draft = commentDrafts[r._id] ?? r.adminComment ?? '';
+              return (
+                <tr key={r._id}>
+                  <td>{typeof r.guestId === 'object' && r.guestId ? `${r.guestId.name} №${r.guestId.roomNumber}` : '—'}</td>
+                  <td>{TYPE_LABELS[r.type]}</td>
+                  <td>
+                    <PayloadSummary request={r} />
+                  </td>
+                  <td>
+                    <StatusCell value={r.status} />
+                    <ActionButtons options={STATUS_OPTIONS} current={r.status} onSelect={(v) => setRequestStatus(r._id, v)} />
+                  </td>
+                  <td style={{ minWidth: 200 }}>
+                    <textarea
+                      rows={2}
+                      placeholder="Например: «принесём через 15 минут»"
+                      value={draft}
+                      onChange={(e) => setCommentDrafts((prev) => ({ ...prev, [r._id]: e.target.value }))}
+                      style={{ width: '100%', fontSize: '0.82rem' }}
+                    />
+                    <button className="btn small secondary" style={{ marginTop: 4 }} onClick={() => saveComment(r._id, draft)}>
+                      Сохранить
+                    </button>
+                  </td>
+                  <td className="muted">{new Date(r.createdAt).toLocaleString()}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

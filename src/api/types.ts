@@ -122,6 +122,7 @@ export interface ServiceRequest {
   type: ServiceRequestType;
   status: ServiceRequestStatus;
   payload: Record<string, any>;
+  adminComment: string;
   createdAt: string;
 }
 
