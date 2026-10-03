@@ -42,65 +42,75 @@ export function StaffPage() {
 
   return (
     <div>
-      <h1>Персонал</h1>
+      <div className="page-head">
+        <h1>Персонал</h1>
+      </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Имя</th>
-            <th>Логин</th>
-            <th>Роль</th>
-            <th>Статус</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {staff.map((s) => (
-            <tr key={s._id}>
-              <td>{s.name}</td>
-              <td>{s.login}</td>
-              <td>{ROLE_LABEL[s.role]}</td>
-              <td>
-                <span className={`badge ${s.active ? 'green' : 'red'}`}>{s.active ? 'активен' : 'заблокирован'}</span>
-              </td>
-              <td>
-                <button className="btn small secondary" onClick={() => toggleActive(s)}>
-                  {s.active ? 'Заблокировать' : 'Разблокировать'}
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="split">
+        <div className="table-wrap responsive">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Сотрудник</th>
+                <th>Роль</th>
+                <th>Статус</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {staff.map((s) => (
+                <tr key={s._id}>
+                  <td className="primary">
+                    <div className="cell-title wrap-anywhere">{s.name}</div>
+                    <div className="cell-sub">логин: {s.login}</div>
+                  </td>
+                  <td data-label="Роль">{ROLE_LABEL[s.role]}</td>
+                  <td className="aside">
+                    <span className={`badge ${s.active ? 'green' : 'red'}`}>{s.active ? 'активен' : 'заблокирован'}</span>
+                  </td>
+                  <td className="actions">
+                    <div className="btn-row">
+                      <button className={`btn small ${s.active ? 'danger-outline' : 'secondary'}`} onClick={() => toggleActive(s)}>
+                        {s.active ? 'Заблокировать' : 'Разблокировать'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {staff.length === 0 && <div className="table-empty">Сотрудников пока нет</div>}
+        </div>
 
-      <div className="card" style={{ marginTop: 20, maxWidth: 420 }}>
-        <h2>Новый сотрудник</h2>
-        <form onSubmit={create}>
-          <div className="field">
-            <label>Имя</label>
-            <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
-          </div>
-          <div className="field">
-            <label>Логин</label>
-            <input className="input" value={login} onChange={(e) => setLogin(e.target.value)} required />
-          </div>
-          <div className="field">
-            <label>Пароль</label>
-            <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
-          </div>
-          <div className="field">
-            <label>Роль</label>
-            <select value={role} onChange={(e) => setRole(e.target.value as AdminRole)}>
-              <option value="reception">Ресепшен</option>
-              <option value="content_manager">Контент-менеджер</option>
-              <option value="super_admin">Супер-админ</option>
-            </select>
-          </div>
-          {error && <div className="error-text">{error}</div>}
-          <button className="btn" type="submit">
-            Создать
-          </button>
-        </form>
+        <div className="card">
+          <h2>Новый сотрудник</h2>
+          <form onSubmit={create}>
+            <div className="field">
+              <label>Имя</label>
+              <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
+            </div>
+            <div className="field">
+              <label>Логин</label>
+              <input className="input" value={login} onChange={(e) => setLogin(e.target.value)} required autoCapitalize="none" autoCorrect="off" />
+            </div>
+            <div className="field">
+              <label>Пароль</label>
+              <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete="new-password" />
+            </div>
+            <div className="field">
+              <label>Роль</label>
+              <select value={role} onChange={(e) => setRole(e.target.value as AdminRole)}>
+                <option value="reception">Ресепшен</option>
+                <option value="content_manager">Контент-менеджер</option>
+                <option value="super_admin">Супер-админ</option>
+              </select>
+            </div>
+            {error && <div className="error-text">{error}</div>}
+            <button className="btn block" type="submit">
+              Создать
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../api/client';
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, sessionExpired } = useAuth();
   const navigate = useNavigate();
   const [loginValue, setLoginValue] = useState('');
   const [password, setPassword] = useState('');
@@ -35,6 +35,9 @@ export function LoginPage() {
           </div>
           Гид — Админ
         </div>
+        {sessionExpired && (
+          <div className="login-card__notice">Сессия завершилась — войдите снова, чтобы продолжить работу.</div>
+        )}
         <div className="field">
           <label>Логин</label>
           <input className="input" value={loginValue} onChange={(e) => setLoginValue(e.target.value)} required autoFocus />

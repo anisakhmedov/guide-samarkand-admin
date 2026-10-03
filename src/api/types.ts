@@ -25,15 +25,31 @@ export interface GuestHistoryEntry {
   at: string;
 }
 
+export type ContactChannel = 'telegram' | 'whatsapp' | 'instagram' | 'wechat' | 'viber' | 'other';
+
+export interface GuestContact {
+  type: ContactChannel;
+  value: string;
+}
+
 export interface Guest {
   _id: string;
   name: string;
   roomNumber: string;
+  phone?: string;
+  contacts?: GuestContact[];
   statusResidence: ResidenceStatus;
   statusReview: ReviewStatus;
   accessStatus: AccessStatus;
   discountStatus: DiscountStatus;
-  history: GuestHistoryEntry[];
+  /** Omitted by the list endpoint — present on GET /admin/guests/:id and PATCH responses. */
+  history?: GuestHistoryEntry[];
+  /** Registration step 2: ISO country code + YYYY-MM-DD. */
+  country?: string;
+  birthDate?: string;
+  /** Registration step 3: house rules signed. The PNG signature only comes with GET /admin/guests/:id. */
+  rulesAcceptedAt?: string | null;
+  rulesSignature?: string;
   createdAt: string;
 }
 
@@ -109,28 +125,40 @@ export interface MenuItem {
   name: string;
   description: string;
   price: number;
+  discountedPrice: number;
   photo: string;
   active: boolean;
 }
 
-export type ServiceRequestType = 'food_order' | 'drink_order' | 'wake_up' | 'cleaning' | 'problem' | 'extension';
+export type ServiceRequestType = 'food_order' | 'drink_order' | 'wake_up' | 'cleaning' | 'problem' | 'extension' | 'hookah';
 export type ServiceRequestStatus = 'new' | 'in_progress' | 'done' | 'rejected';
 
 export interface ServiceRequest {
   _id: string;
-  guestId: { name: string; roomNumber: string } | string;
+  guestId: { _id: string; name: string; roomNumber: string; phone?: string } | string | null;
   type: ServiceRequestType;
   status: ServiceRequestStatus;
   payload: Record<string, any>;
+  total: number;
+  paid: boolean;
+  paidAt: string | null;
   adminComment: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface HotelSettings {
   discountPercent: number;
+  markupPercent: number;
+  hookahPrice: number;
+  hookahAvailable: boolean;
 }
 
 export interface AdminNotifications {
   unreadChat: number;
   newRequests: number;
+  pendingGuests: number;
+  pendingReviews: number;
+  pendingDiscounts: number;
+  lastGuestActivityAt: string | null;
 }

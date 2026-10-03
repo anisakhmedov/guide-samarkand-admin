@@ -2,15 +2,20 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Layout } from './components/Layout';
 import { LoginPage } from './pages/LoginPage';
-import { GuestsPage } from './pages/GuestsPage';
-import { PlacesPage } from './pages/PlacesPage';
-import { RouteBuilderPage } from './pages/RouteBuilderPage';
-import { ChatPage } from './pages/ChatPage';
-import { FeedbackPage } from './pages/FeedbackPage';
-import { StaffPage } from './pages/StaffPage';
-import { MenuPage } from './pages/MenuPage';
-import { ServiceRequestsPage } from './pages/ServiceRequestsPage';
-import { SettingsPage } from './pages/SettingsPage';
+import { lazy } from 'react';
+
+const page = <K extends string>(load: () => Promise<Record<K, React.ComponentType>>, name: K) =>
+  lazy(() => load().then((m) => ({ default: m[name] })));
+
+const GuestsPage = page(() => import('./pages/GuestsPage'), 'GuestsPage');
+const PlacesPage = page(() => import('./pages/PlacesPage'), 'PlacesPage');
+const RouteBuilderPage = page(() => import('./pages/RouteBuilderPage'), 'RouteBuilderPage');
+const ChatPage = page(() => import('./pages/ChatPage'), 'ChatPage');
+const FeedbackPage = page(() => import('./pages/FeedbackPage'), 'FeedbackPage');
+const StaffPage = page(() => import('./pages/StaffPage'), 'StaffPage');
+const MenuPage = page(() => import('./pages/MenuPage'), 'MenuPage');
+const ServiceRequestsPage = page(() => import('./pages/ServiceRequestsPage'), 'ServiceRequestsPage');
+const SettingsPage = page(() => import('./pages/SettingsPage'), 'SettingsPage');
 
 function RequireAuth({ children }: { children: React.ReactElement }) {
   const { admin } = useAuth();

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 import { api } from '../api/client';
 import { GuideRoute, Place, RouteDuration, RouteTheme, TransportType } from '../api/types';
 import { numberedIcon } from '../components/leafletIcons';
@@ -139,6 +141,15 @@ export function RouteBuilderPage() {
   const updateComment = (idx: number, comment: string) =>
     setPoints(points.map((p, i) => (i === idx ? { ...p, comment } : p)));
 
+  // Up/down buttons — HTML5 drag & drop doesn't fire on touch screens.
+  const movePoint = (idx: number, dir: -1 | 1) => {
+    const target = idx + dir;
+    if (target < 0 || target >= points.length) return;
+    const next = [...points];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setPoints(next);
+  };
+
   const onDrop = (idx: number) => {
     if (dragIndex === null || dragIndex === idx) return;
     const next = [...points];
@@ -196,18 +207,25 @@ export function RouteBuilderPage() {
 
   return (
     <div>
-      <h1>Конструктор маршрутов</h1>
+      <div className="page-head">
+        <h1>Конструктор маршрутов</h1>
+      </div>
 
       <div className="route-builder">
         <div className="card">
           <h2>Точки гайда</h2>
-          <input className="input" placeholder="Поиск…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', marginBottom: 10 }} />
+          <input className="input" type="search" placeholder="Поиск…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', marginBottom: 10 }} />
           <div className="place-pick-list">
             {filteredPlaces.map((p) => (
               <div key={p._id} className="place-pick-item">
                 <span>{p.name}</span>
-                <button className="btn small secondary" onClick={() => addPlace(p)}>
-                  +
+                <button
+                  className="btn icon small secondary"
+                  onClick={() => addPlace(p)}
+                  disabled={points.some((pt) => pt.placeId === p._id)}
+                  aria-label="Добавить в маршрут"
+                >
+                  <Plus />
                 </button>
               </div>
             ))}
@@ -251,13 +269,13 @@ export function RouteBuilderPage() {
                 </select>
               </div>
             </div>
-            <label>
+            <label className="check-label">
               <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} /> Опубликован
             </label>
           </div>
 
           <h2>Точки маршрута ({points.length})</h2>
-          <p className="muted">Перетащите, чтобы изменить порядок. Расстояние и время между точками считаются автоматически при сохранении.</p>
+          <p className="muted">Перетащите или используйте стрелки, чтобы изменить порядок. Расстояние и время между точками считаются автоматически при сохранении.</p>
           <ul className="route-points-list">
             {points.map((p, idx) => (
               <li
@@ -269,8 +287,8 @@ export function RouteBuilderPage() {
                 onDrop={() => onDrop(idx)}
               >
                 <span className="handle">⠿</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600 }}>
+                <div className="route-point-row__body">
+                  <div style={{ fontWeight: 600 }} className="wrap-anywhere">
                     {idx + 1}. {p.name}
                   </div>
                   <input
@@ -286,9 +304,17 @@ export function RouteBuilderPage() {
                     </div>
                   )}
                 </div>
-                <button className="btn small danger" onClick={() => removePoint(idx)}>
-                  ✕
-                </button>
+                <div className="route-point-row__controls">
+                  <button className="btn icon small secondary" onClick={() => movePoint(idx, -1)} disabled={idx === 0} aria-label="Выше">
+                    <ArrowUp />
+                  </button>
+                  <button className="btn icon small secondary" onClick={() => movePoint(idx, 1)} disabled={idx === points.length - 1} aria-label="Ниже">
+                    <ArrowDown />
+                  </button>
+                  <button className="btn icon small danger-outline" onClick={() => removePoint(idx)} aria-label="Убрать точку">
+                    <X />
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -300,11 +326,11 @@ export function RouteBuilderPage() {
           )}
 
           <h2>Предпросмотр на карте</h2>
-          <div ref={previewMapDivRef} style={{ height: 280, borderRadius: 10, overflow: 'hidden', marginBottom: 12 }} />
+          <div ref={previewMapDivRef} className="route-map" />
 
           {error && <div className="error-text">{error}</div>}
 
-          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+          <div className="btn-row" style={{ marginTop: 12 }}>
             <button className="btn" onClick={save} disabled={saving}>
               {editingId ? 'Сохранить изменения' : 'Создать маршрут'}
             </button>
@@ -318,40 +344,54 @@ export function RouteBuilderPage() {
       </div>
 
       <h2 style={{ marginTop: 32 }}>Существующие маршруты</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Название</th>
-            <th>Точек</th>
-            <th>Тематика</th>
-            <th>Статус</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {routes.map((r) => (
-            <tr key={r._id}>
-              <td>{r.title}</td>
-              <td>{r.points.length}</td>
-              <td>{r.theme ? THEME_LABEL[r.theme] : '—'}</td>
-              <td>
-                <span className={`badge ${r.published ? 'green' : 'orange'}`}>{r.published ? 'опубликован' : 'черновик'}</span>
-              </td>
-              <td style={{ display: 'flex', gap: 6 }}>
-                <button className="btn small secondary" onClick={() => editRoute(r)}>
-                  Изменить
-                </button>
-                <button className="btn small secondary" onClick={() => togglePublished(r)}>
-                  {r.published ? 'Снять с публикации' : 'Опубликовать'}
-                </button>
-                <button className="btn small danger" onClick={() => removeRoute(r._id)}>
-                  Удалить
-                </button>
-              </td>
+      <div className="table-wrap responsive">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Маршрут</th>
+              <th>Тематика</th>
+              <th>Статус</th>
+              <th></th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {routes.map((r) => (
+              <tr key={r._id} className={editingId === r._id ? 'is-new' : ''}>
+                <td className="primary">
+                  <div className="cell-title wrap-anywhere">{r.title}</div>
+                  <div className="cell-sub">
+                    {r.points.length} точек · {DURATION_LABEL[r.durationEstimate]} · {r.transportType === 'walking' ? 'пешком' : 'на транспорте'}
+                  </div>
+                </td>
+                <td data-label="Тематика">{r.theme ? THEME_LABEL[r.theme] : '—'}</td>
+                <td className="aside">
+                  <span className={`badge ${r.published ? 'green' : 'orange'}`}>{r.published ? 'опубликован' : 'черновик'}</span>
+                </td>
+                <td className="actions">
+                  <div className="btn-row">
+                    <button
+                      className="btn small secondary"
+                      onClick={() => {
+                        editRoute(r);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                    >
+                      Изменить
+                    </button>
+                    <button className="btn small secondary" onClick={() => togglePublished(r)}>
+                      {r.published ? 'Снять с публикации' : 'Опубликовать'}
+                    </button>
+                    <button className="btn small danger-outline" onClick={() => removeRoute(r._id)}>
+                      Удалить
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {routes.length === 0 && <div className="table-empty">Маршрутов пока нет</div>}
+      </div>
     </div>
   );
 }

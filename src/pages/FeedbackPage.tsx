@@ -11,17 +11,22 @@ export function FeedbackPage() {
 
   return (
     <div>
-      <h1>Обратная связь</h1>
-      <p className="muted">Отзывы гостей о самом приложении — без модерации, просто лента.</p>
+      <div className="page-head">
+        <div>
+          <h1>Обратная связь</h1>
+          <p className="muted">Отзывы гостей о самом приложении — без модерации, просто лента.</p>
+        </div>
+      </div>
       {items.map((f) => (
-        <div key={f._id} className="card" style={{ marginBottom: 10 }}>
-          <div>{f.text}</div>
-          <div className="muted" style={{ marginTop: 6 }}>
-            {new Date(f.createdAt).toLocaleString()} {typeof f.guestId === 'object' && f.guestId ? `· ${f.guestId.name} №${f.guestId.roomNumber}` : ''}
+        <div key={f._id} className="card feedback-item">
+          <div className="feedback-item__text">{f.text}</div>
+          <div className="muted" style={{ marginTop: 8 }}>
+            {new Date(f.createdAt).toLocaleString('ru-RU')}
+            {typeof f.guestId === 'object' && f.guestId ? ` · ${f.guestId.name}, №${f.guestId.roomNumber}` : ''}
           </div>
         </div>
       ))}
-      {items.length === 0 && <p className="muted">Пока нет отзывов</p>}
+      {items.length === 0 && <div className="card empty-state">Пока нет отзывов</div>}
     </div>
   );
 }

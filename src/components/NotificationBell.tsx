@@ -1,83 +1,120 @@
-import { useEffect, useRef, useState } from 'react';
+import { CSSProperties, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { Bell, ListChecks, MessageCircle } from 'lucide-react';
-import { api } from '../api/client';
-import { AdminNotifications } from '../api/types';
-import { notifyBrowser, requestNotificationPermission } from '../notify';
+import { Bell, BellOff, BellRing, CheckCircle2, ChevronRight, Volume2, VolumeX } from 'lucide-react';
+import { KIND_META, NotificationKind, useAdminNotifications } from './AdminNotifications';
 
-const POLL_MS = 15000;
+const ORDER: NotificationKind[] = ['requests', 'chat', 'guests', 'reviews'];
+const PANEL_WIDTH = 330;
 
-// Sidebar bell, visible on every admin page: unread guest chat messages + service
-// requests nobody has actioned yet. Polling (not the chat Socket.io gateway) on purpose —
-// the backend runs as Vercel serverless functions in production, which don't hold
-// persistent WS connections (see ChatPage.tsx's frontend for the same reasoning).
-export function NotificationBell() {
-  const [data, setData] = useState<AdminNotifications>({ unreadChat: 0, newRequests: 0 });
+// Bell + dropdown. The panel is portalled to <body> with fixed positioning, so neither the
+// scrollable sidebar nor the sticky top bar can clip it.
+export function NotificationBell({ align = 'left' }: { align?: 'left' | 'right' }) {
+  const { counts, total, permission, enable, sound, setSound } = useAdminNotifications();
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const prevRef = useRef<AdminNotifications | null>(null);
+  const [style, setStyle] = useState<CSSProperties>({});
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  const load = () =>
-    api
-      .get<AdminNotifications>('/admin/notifications')
-      .then((s) => {
-        setData(s);
-        const prev = prevRef.current;
-        if (prev) {
-          if (s.unreadChat > prev.unreadChat) {
-            notifyBrowser('Новое сообщение', 'Гость написал в чат');
-          }
-          if (s.newRequests > prev.newRequests) {
-            notifyBrowser('Новая заявка', 'Гость отправил новый запрос');
-          }
-        }
-        prevRef.current = s;
-      })
-      .catch(() => {});
+  const place = () => {
+    const r = triggerRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const width = Math.min(PANEL_WIDTH, window.innerWidth - 16);
+    const left = align === 'right' ? r.right - width : r.left;
+    setStyle({ top: r.bottom + 8, left: Math.max(8, Math.min(left, window.innerWidth - width - 8)), width });
+  };
 
-  useEffect(() => {
-    requestNotificationPermission();
-    load();
-    const id = setInterval(load, POLL_MS);
-    return () => clearInterval(id);
-  }, []);
+  useLayoutEffect(() => {
+    if (open) place();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (!panelRef.current?.contains(target) && !triggerRef.current?.contains(target)) setOpen(false);
     };
-    document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', place);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', place);
+    };
   }, [open]);
 
-  const total = data.unreadChat + data.newRequests;
+  const rows = ORDER.filter((k) => counts[k] > 0);
 
   return (
-    <div className="notif-bell" ref={ref}>
-      <button className="notif-bell__trigger" onClick={() => setOpen((v) => !v)} title="Уведомления">
-        <Bell size={16} />
-        {total > 0 && <span className="notif-bell__badge">{total > 9 ? '9+' : total}</span>}
+    <div className="notif-bell">
+      <button
+        ref={triggerRef}
+        className={`notif-bell__trigger ${total > 0 ? 'has-unread' : ''}`}
+        onClick={() => setOpen((v) => !v)}
+        title="Уведомления"
+        aria-label={`Уведомления${total ? `: ${total}` : ''}`}
+      >
+        <Bell size={17} />
+        {total > 0 && <span className="notif-bell__badge">{total > 99 ? '99+' : total}</span>}
       </button>
-      {open && (
-        <div className="notif-bell__panel card">
-          {data.unreadChat > 0 && (
-            <Link to="/chat" className="notif-bell__row" onClick={() => setOpen(false)}>
-              <MessageCircle size={16} />
-              <span>Новые сообщения в чате</span>
-              <span className="badge orange">{data.unreadChat}</span>
-            </Link>
-          )}
-          {data.newRequests > 0 && (
-            <Link to="/requests" className="notif-bell__row" onClick={() => setOpen(false)}>
-              <ListChecks size={16} />
-              <span>Новые запросы гостей</span>
-              <span className="badge orange">{data.newRequests}</span>
-            </Link>
-          )}
-          {total === 0 && <div className="muted notif-bell__empty">Новых уведомлений нет</div>}
-        </div>
-      )}
+
+      {open &&
+        createPortal(
+          <div ref={panelRef} className="notif-panel" style={style} role="dialog" aria-label="Уведомления">
+            <div className="notif-panel__head">
+              <span>Уведомления</span>
+              {total > 0 && <span className="badge accent">{total}</span>}
+            </div>
+
+            <div className="notif-panel__list">
+              {rows.length === 0 && (
+                <div className="notif-panel__empty">
+                  <CheckCircle2 size={28} />
+                  <div>Всё обработано</div>
+                  <span className="muted">Новые заявки, сообщения и гости появятся здесь</span>
+                </div>
+              )}
+              {rows.map((kind) => {
+                const meta = KIND_META[kind];
+                return (
+                  <Link key={kind} to={meta.url} className="notif-panel__row" onClick={() => setOpen(false)}>
+                    <span className={`notif-panel__icon tone-${meta.tone}`}>
+                      <meta.Icon size={17} />
+                    </span>
+                    <span className="notif-panel__label">{meta.label}</span>
+                    <span className="notif-panel__count">{counts[kind]}</span>
+                    <ChevronRight size={16} className="notif-panel__chevron" />
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="notif-panel__foot">
+              {permission === 'default' && (
+                <button className="btn small block" onClick={enable}>
+                  <BellRing /> Включить уведомления в браузере
+                </button>
+              )}
+              {permission === 'granted' && (
+                <div className="notif-panel__status ok">
+                  <BellRing size={15} /> Уведомления браузера включены
+                </div>
+              )}
+              {permission === 'denied' && (
+                <div className="notif-panel__status warn">
+                  <BellOff size={15} /> Заблокированы в браузере — разрешите их для этого сайта (значок слева от адреса)
+                </div>
+              )}
+              <button className="notif-panel__sound" onClick={() => setSound(!sound)}>
+                {sound ? <Volume2 size={15} /> : <VolumeX size={15} />}
+                Звук: {sound ? 'включён' : 'выключен'}
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
